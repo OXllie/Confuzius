@@ -25,22 +25,26 @@ def randCharArray(strings):
     pureText = list(set(''.join(strings)))
     return pureText
 
-def indexCharList(word,charList):
+def indexCharList(word,charList,name):
     luaArray = ""
     for i,v in enumerate(word):
         if i+1 != len(word):
-            luaArray += "bdbd[" + str(charList.index(v)) + "].."
+            luaArray += name+"[" + str(charList.index(v)+1) + "].."
         else:
-            luaArray += "bdbd[" + str(charList.index(v)) + "]"
+            luaArray += name+"[" + str(charList.index(v)+1) + "]"
     return luaArray
 
 def luaify(obj,name):
     # Translate python tables to lua syntax
-    d = "a"
+    luaobj = name + "={"
+    for i in obj:
+        luaobj += "\""+i+"\","
+    luaobj = luaobj[:-1]+"}"
+    return luaobj
 
 def obsfucate(lua):
-    # ((?<=\t| |{|,)[a-zA-Z0-9_]+(?=.\= )) - Variable regex
-    vNames = re.findall("((?<=\t| |{|,)[a-zA-Z0-9_]+(?=.\= ))", lua)
+    # ((?<=\n|\t| |{|,)[a-zA-Z0-9_]+(?=.\= )) - Variable regex
+    vNames = re.findall("((?<=\n|\t| |{|,)[a-zA-Z0-9_]+(?=.\= ))", lua)
     vNames = list(set(vNames))
 
     # (?<!")(?<=\W)Service+(?=\W)(?!") - Replace var regex
@@ -63,14 +67,18 @@ def obsfucate(lua):
     # ([\"]+?(.+?)[\"]+?) - String regex
     strings = re.findall("[\"]+?(.+?)[\"]+?",lua)
     charList = randCharArray(strings)
+    name = randVar()
     for word in strings:
-        lua = re.sub("[\"]+?"+word+"[\"]+?",indexCharList(word,charList),lua)
+        lua = re.sub("[\"]+?"+word+"[\"]+?",indexCharList(word,charList,name),lua)
+
+    charDef = luaify(charList,name)
+    lua = charDef + lua
     
     #lua = lua.replace("\n"," ")
     #lua = lua.replace("\t"," ")
     print(lua)
 
-#open file
-fileIO = open('C:\\',"r")
+
+fileIO = open('C:\\Users\\Oliver\\Desktop\\lua example.txt',"r")
 lua = fileIO.read()
 obsfucate(lua)
