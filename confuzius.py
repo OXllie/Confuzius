@@ -2,30 +2,28 @@
 ## Confuzius
 
 import re
-import string
-import os
 import random
 
 usedVars = []
 def randVar():
-    a = random.randint(5,35)
+    # Generates a random variable name with no collisions
     while True:
+        a = random.randint(5,35)
         varN = ""
         for i in range(1,a):
-            if 1 == random.randint(0,1):
-                varN += "b"
-            else:
-                varN += "d"
+            varN += random.choice(["d","b"])
         if not varN in usedVars:
             break
     usedVars.append(varN)
     return varN
 
 def randCharArray(strings):
+    # Takes all strings found and generates a python list of all unique characters
     pureText = list(set(''.join(strings)))
     return pureText
 
 def indexCharList(word,charList,name):
+    # Generates the lua for concatenating references to the array to produce an obsfucated string output
     luaArray = ""
     for i,v in enumerate(word):
         if i+1 != len(word):
@@ -43,34 +41,37 @@ def luaify(obj,name):
     return luaobj
 
 def obsfucate(lua):
-    # ((?<=\n|\t| |{|,)[a-zA-Z0-9_]+(?=.\= )) - Variable regex
+    # Variable regex
     vNames = re.findall("((?<=\n|\t| |{|,)[a-zA-Z0-9_]+(?=.\= ))", lua)
     vNames = list(set(vNames))
-
-    # (?<!")(?<=\W)Service+(?=\W)(?!") - Replace var regex
+    # Replace variable
     for v in vNames:
         lua = re.sub("(?<!\")(?<=\W)"+v+"+(?=\W)(?!\")",randVar(),lua)
 
-    # (?<=function )[\w]+ - Function name regex
+    # Function name regex
     fNames = re.findall("(?<=function )[\w]+", lua)
     fNames = list(set(fNames))
+    # Replace function
     for v in fNames:
         lua = re.sub("(?<!\")(?<=\W)"+v+"+(?=\W)(?!\")",randVar(),lua)
 
-    # Regex for function paramerers
+    # Function parameters regex
     pNamesDirty = re.findall("(?<=function)(.+\))", lua)
     pNamesClean = re.findall("(?<=\(|,)[a-zA-Z0-9_]+(?=\)|,)",str(pNamesDirty))
     pNames = list(set(pNamesClean))
+    # Replace function parameters
     for v in pNames:
         lua = re.sub("(?<!\")(?<=\W)"+v+"+(?=\W)(?!\")",randVar(),lua)
 
-    # ([\"]+?(.+?)[\"]+?) - String regex
+    # String regex
     strings = re.findall("[\"]+?(.+?)[\"]+?",lua)
     charList = randCharArray(strings)
     name = randVar()
+    # Replace strings
     for word in strings:
         lua = re.sub("[\"]+?"+word+"[\"]+?",indexCharList(word,charList,name),lua)
-
+    
+    # Generates a lua array containing all the characters defined in charList and appends it to the script
     charDef = luaify(charList,name)
     lua = charDef + lua
     
